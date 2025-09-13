@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Tactic Round';
+  src: url('./assets/fonts/TacticRound.woff2') format('woff2'),
+       url('./assets/fonts/TacticRound.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #0a0a0a;
+  color: #e5e5e5;
+  font-family: system-ui, sans-serif;
+  overflow: hidden;
+}
