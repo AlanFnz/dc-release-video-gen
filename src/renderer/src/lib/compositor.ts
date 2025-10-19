@@ -65,28 +65,7 @@ function drawTextures(
     ctx.save()
     ctx.globalAlpha = tex.opacity
     ctx.globalCompositeOperation = tex.blendMode
-
-    if (tex.mask === 'left-fade') {
-      // clip with a left-to-right gradient mask using offscreen compositing
-      const off = document.createElement('canvas')
-      off.width = w
-      off.height = h
-      const offCtx = off.getContext('2d')!
-      offCtx.drawImage(img, 0, 0, w, h)
-
-      // multiply the texture by a gradient mask (destination-in)
-      const grad = offCtx.createLinearGradient(0, 0, w * 0.6, 0)
-      grad.addColorStop(0, 'rgba(0,0,0,0)')
-      grad.addColorStop(1, 'rgba(0,0,0,1)')
-      offCtx.globalCompositeOperation = 'destination-in'
-      offCtx.fillStyle = grad
-      offCtx.fillRect(0, 0, w, h)
-
-      ctx.drawImage(off, 0, 0)
-    } else {
-      ctx.drawImage(img, 0, 0, w, h)
-    }
-
+    ctx.drawImage(img, 0, 0, w, h)
     ctx.restore()
   }
 }
