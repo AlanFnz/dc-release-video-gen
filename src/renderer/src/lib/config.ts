@@ -3,8 +3,6 @@ export interface TextureConfig {
   src: string
   blendMode: GlobalCompositeOperation
   opacity: number
-  // optional mask applied before drawing
-  mask?: 'left-fade'
 }
 
 export interface CompositionConfig {
@@ -57,16 +55,16 @@ export interface CompositionConfig {
 }
 
 export const defaultConfig: CompositionConfig = {
-  labelName: 'YOUR LABEL',
+  labelName: 'DUB CULTURE',
   duration: 60,
   fps: 30,
   size: { width: 1500, height: 1500 },
   vinyl: {
-    degreesPerSecond: 2,   // ~0.33 RPM — slow cinematic spin
-    radiusFraction: 0.355,
+    degreesPerSecond: 12,   // ~0.33 RPM — slow cinematic spin
+    radiusFraction: 0.45,
     cx: 0.5,
     cy: 0.5,
-    labelRadiusFraction: 0.32,
+    labelRadiusFraction: 1,
   },
   glitch: {
     revealDuration: 2.5,
@@ -85,14 +83,14 @@ export const defaultConfig: CompositionConfig = {
   textures: [
     { src: 'texture1.png', blendMode: 'source-over', opacity: 0.15 },
     { src: 'texture2.png', blendMode: 'multiply',    opacity: 1.0 },
-    { src: 'texture3.png', blendMode: 'source-over', opacity: 1.0, mask: 'left-fade' },
+    { src: 'texture3.png', blendMode: 'source-over', opacity: 1.0 },
   ],
   font: {
     family: 'Tactic Round',
-    labelSize: 28,
-    releaseSize: 28,
-    artistSize: 42,
-    trackSize: 30,
+    labelSize: 42,
+    releaseSize: 42,
+    artistSize: 58,
+    trackSize: 46,
     color: '#ffffff',
   },
 }
