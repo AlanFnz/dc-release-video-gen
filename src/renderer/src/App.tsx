@@ -15,10 +15,9 @@ const AUDIO_FILTERS: FileFilter[] = [
   { name: 'Audio', extensions: ['mp3', 'wav', 'aac', 'm4a', 'flac'] },
 ]
 
-const EMPTY_ASSETS: Assets = { background: null, vinylDisc: null, vinylLabel: null, textures: [] }
 
 export default function App() {
-  const config = defaultConfig
+  const baseConfig = defaultConfig
 
   // form state
   const [artistName, setArtistName] = useState('')
@@ -27,7 +26,8 @@ export default function App() {
   const [backgroundPath, setBackgroundPath] = useState<string | null>(null)
   const [vinylLabelPath, setVinylLabelPath] = useState<string | null>(null)
   const [audioPath, setAudioPath] = useState<string | null>(null)
-  const [duration, setDuration] = useState(config.duration)
+  const [duration, setDuration] = useState(baseConfig.duration)
+  const config = useMemo(() => ({ ...baseConfig, duration }), [duration])
 
   // loaded assets
   const [staticAssets, setStaticAssets] = useState<Omit<Assets, 'background' | 'vinylLabel'> | null>(null)
@@ -74,7 +74,7 @@ export default function App() {
 
   function handleExport() {
     if (!audioPath) return
-    startExport(release, audioPath, duration)
+    startExport(release, audioPath, config.duration)
   }
 
   return (
@@ -128,7 +128,10 @@ export default function App() {
               min={5}
               max={600}
               value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                if (v >= 1) setDuration(v)
+              }}
               className="rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-neutral-500 transition-colors"
             />
           </div>
