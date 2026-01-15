@@ -67,12 +67,12 @@ export const defaultConfig: CompositionConfig = {
     labelRadiusFraction: 1,
   },
   glitch: {
-    revealDuration: 2.5,
+    revealDuration: 1.2,
     intervalMin: 6,
     intervalMax: 14,
-    rgbOffset: 6,
-    glowBlur: 18,
-    glowOpacity: 0.55,
+    rgbOffset: 10,
+    glowBlur: 22,
+    glowOpacity: 0.6,
   },
   layout: {
     labelName:   { x: 0.045, y: 0.072, align: 'left' },
@@ -87,8 +87,8 @@ export const defaultConfig: CompositionConfig = {
   ],
   font: {
     family: 'Tactic Round',
-    labelSize: 42,
-    releaseSize: 42,
+    labelSize: 48,
+    releaseSize: 48,
     artistSize: 58,
     trackSize: 46,
     color: '#ffffff',
