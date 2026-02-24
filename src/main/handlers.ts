@@ -1,11 +1,17 @@
-import { ipcMain, dialog, app } from 'electron'
+import { ipcMain, dialog, app, nativeImage, BrowserWindow } from 'electron'
 import { join, dirname, extname } from 'path'
 import { writeFileSync, unlinkSync, existsSync, mkdirSync, readFileSync } from 'fs'
 import { tmpdir } from 'os'
+import { spawn } from 'child_process'
 import ffmpegStatic from 'ffmpeg-static'
 import Ffmpeg from 'fluent-ffmpeg'
 
-if (ffmpegStatic) Ffmpeg.setFfmpegPath(ffmpegStatic)
+// in packaged builds ffmpeg is extracted to resources/ next to the app
+const ffmpegPath = app.isPackaged
+  ? join(process.resourcesPath, 'ffmpeg')
+  : (ffmpegStatic as string)
+
+Ffmpeg.setFfmpegPath(ffmpegPath)
 
 export function registerHandlers(): void {
   // read a user file and return it as a base64 data url (avoids file:// csp issues)
@@ -16,8 +22,64 @@ export function registerHandlers(): void {
       ext === 'png' ? 'image/png' :
       ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' :
       ext === 'webp' ? 'image/webp' :
+      ext === 'mp3' ? 'audio/mpeg' :
+      ext === 'wav' ? 'audio/wav' :
+      ext === 'aac' ? 'audio/aac' :
+      ext === 'm4a' ? 'audio/mp4' :
+      ext === 'flac' ? 'audio/flac' :
+      ext === 'ogg' ? 'audio/ogg' :
       'application/octet-stream'
     return `data:${mime};base64,${buf.toString('base64')}`
+  })
+
+  // set dock/taskbar icon from PNG ArrayBuffer rendered by the renderer canvas
+  // also persists to resources/icon.png for electron-builder to pick up
+  ipcMain.handle('app:setIcon', (_e, buffer: ArrayBuffer) => {
+    const buf = Buffer.from(buffer)
+    const img = nativeImage.createFromBuffer(buf)
+    if (process.platform === 'darwin') app.dock.setIcon(img)
+    BrowserWindow.getAllWindows().forEach((w) => w.setIcon(img))
+    // save alongside source so electron-builder uses it on next package run
+    if (!app.isPackaged) {
+      const iconDest = join(app.getAppPath(), 'resources', 'icon.png')
+      try {
+        if (!existsSync(dirname(iconDest))) mkdirSync(dirname(iconDest), { recursive: true })
+        writeFileSync(iconDest, buf)
+      } catch { /* non-fatal */ }
+    }
+  })
+
+  // read audio file as ArrayBuffer + mimeType so renderer can create a Blob URL
+  ipcMain.handle('audio:readBuffer', (_e, filePath: string) => {
+    const buf = readFileSync(filePath)
+    const ext = extname(filePath).slice(1).toLowerCase()
+    const mimeType =
+      ext === 'mp3' ? 'audio/mpeg' :
+      ext === 'wav' ? 'audio/wav' :
+      ext === 'aac' ? 'audio/aac' :
+      ext === 'm4a' ? 'audio/mp4' :
+      ext === 'flac' ? 'audio/flac' :
+      ext === 'ogg' ? 'audio/ogg' :
+      'audio/mpeg'
+    // slice to get a plain ArrayBuffer (not a Node Buffer's backing store)
+    const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
+    return { buffer: ab, mimeType }
+  })
+
+  // probe audio file duration via ffmpeg stderr
+  ipcMain.handle('audio:getDuration', (_e, filePath: string): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const proc = spawn(ffmpegPath, ['-i', filePath])
+      let stderr = ''
+      proc.stderr.on('data', (d: Buffer) => { stderr += d.toString() })
+      proc.on('close', () => {
+        const m = stderr.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/)
+        if (!m) { reject(new Error('could not parse audio duration')); return }
+        const secs = parseInt(m[1]) * 3600 + parseInt(m[2]) * 60 + parseFloat(m[3])
+        resolve(secs)
+      })
+      proc.on('error', reject)
+    })
   })
 
   // open a file picker and return the chosen path
@@ -38,7 +100,7 @@ export function registerHandlers(): void {
   // receives webm buffer + audio path, outputs mp4
   ipcMain.handle(
     'export:video',
-    (_e, webmBuffer: ArrayBuffer, audioPath: string, outputPath: string, duration: number) => {
+    (e, webmBuffer: ArrayBuffer, audioPath: string, outputPath: string, duration: number, audioStartTime: number) => {
       return new Promise<{ ok: true } | { ok: false; error: string }>((resolve) => {
         // write webm to temp file
         const tmp = join(tmpdir(), `vvg-${Date.now()}.webm`)
@@ -47,9 +109,10 @@ export function registerHandlers(): void {
           const outDir = dirname(outputPath)
           if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true })
 
-          const cmd = Ffmpeg()
-            .input(tmp)
-            .input(audioPath)
+          const audioInput = Ffmpeg().input(tmp).input(audioPath)
+          if (audioStartTime > 0) audioInput.inputOptions([`-ss ${audioStartTime}`])
+
+          const cmd = audioInput
             .outputOptions([
               `-t ${duration}`,
               '-c:v libx264',
@@ -62,6 +125,15 @@ export function registerHandlers(): void {
               '-movflags +faststart',
             ])
             .output(outputPath)
+            .on('progress', (info) => {
+              // parse timemark "HH:MM:SS.ss" → progress 0–1
+              if (info.timemark) {
+                const parts = info.timemark.split(':')
+                const secs = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2])
+                const p = Math.min(secs / duration, 1)
+                e.sender.send('export:progress', p)
+              }
+            })
             .on('end', () => {
               if (existsSync(tmp)) unlinkSync(tmp)
               resolve({ ok: true })

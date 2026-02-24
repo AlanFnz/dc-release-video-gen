@@ -19,14 +19,19 @@ declare global {
   interface Window {
     api: {
       readAsDataUrl: (filePath: string) => Promise<string>
+      getAudioDuration: (filePath: string) => Promise<number>
+      readAudioBuffer: (filePath: string) => Promise<{ buffer: ArrayBuffer; mimeType: string }>
+      setAppIcon: (buffer: ArrayBuffer) => Promise<void>
       openFile: (filters: FileFilter[]) => Promise<string | null>
       saveFile: (defaultName: string) => Promise<string | null>
       exportVideo: (
         webmBuffer: ArrayBuffer,
         audioPath: string,
         outputPath: string,
-        duration: number
+        duration: number,
+        audioStartTime: number
       ) => Promise<{ ok: true } | { ok: false; error: string }>
+      onExportProgress: (cb: (progress: number) => void) => () => void
     }
   }
 }
@@ -36,7 +41,7 @@ export function useExport(config: CompositionConfig, assets: Assets) {
   const abortRef = useRef(false)
 
   const startExport = useCallback(
-    async (release: ReleaseData, audioPath: string, duration: number) => {
+    async (release: ReleaseData, audioPath: string, duration: number, audioStartTime: number) => {
       abortRef.current = false
       setState({ status: 'recording', progress: 0, error: null })
 
@@ -75,14 +80,20 @@ export function useExport(config: CompositionConfig, assets: Assets) {
         // animate frame by frame driven by real time
         let glitchSt = makeGlitchState(config)
         const startTime = performance.now()
+        let lastProgressUpdate = 0
 
         await new Promise<void>((resolve) => {
           function tick(): void {
             if (abortRef.current) { recorder.stop(); resolve(); return }
 
-            const t = (performance.now() - startTime) / 1000
-            const progress = Math.min(t / duration, 1)
-            setState((s) => ({ ...s, progress }))
+            const now = performance.now()
+            const t = (now - startTime) / 1000
+
+            // throttle state updates to ~10/s so React can keep up
+            if (now - lastProgressUpdate >= 100) {
+              lastProgressUpdate = now
+              setState((s) => ({ ...s, progress: Math.min(t / duration, 1) }))
+            }
 
             glitchSt = tickGlitch(glitchSt, t, config)
             const intensity = glitchIntensity(glitchSt, t, config)
@@ -109,14 +120,20 @@ export function useExport(config: CompositionConfig, assets: Assets) {
           recorder.onstop = () => resolve()
         })
 
-        setState({ status: 'encoding', progress: 1, error: null })
+        setState({ status: 'encoding', progress: 0, error: null })
 
         // collect webm blob → ArrayBuffer
         const blob = new Blob(chunks, { type: 'video/webm' })
         const webmBuffer = await blob.arrayBuffer()
 
+        // subscribe to ffmpeg encoding progress
+        const unsubProgress = window.api.onExportProgress((p) => {
+          setState((s) => s.status === 'encoding' ? { ...s, progress: p } : s)
+        })
+
         // hand off to main process for ffmpeg muxing
-        const result = await window.api.exportVideo(webmBuffer, audioPath, outputPath, duration)
+        const result = await window.api.exportVideo(webmBuffer, audioPath, outputPath, duration, audioStartTime)
+        unsubProgress()
 
         if (result.ok) {
           setState({ status: 'done', progress: 1, error: null })
