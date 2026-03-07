@@ -1,0 +1,49 @@
+{
+  "app": {
+    "title": "Dub Culture Release Video Maker"
+  },
+  "section": {
+    "images": "imágenes",
+    "text": "texto",
+    "vinyl": "vinilo",
+    "audio": "audio"
+  },
+  "field": {
+    "background": "Fondo",
+    "vinylLabel": "Etiqueta del vinilo",
+    "backgroundScale": "Escala del fondo",
+    "labelImageScale": "Escala de la etiqueta",
+    "artist": "Artista",
+    "track": "Tema",
+    "release": "Lanzamiento",
+    "bottomTextSize": "Tamaño del texto",
+    "discSize": "Tamaño del disco",
+    "labelSize": "Tamaño de la etiqueta",
+    "soundtrack": "Pista de audio",
+    "startTime": "Tiempo de inicio",
+    "duration": "Duración (segundos)"
+  },
+  "hint": {
+    "recommended": "recomendado 1500×1500",
+    "max": "máx",
+    "maxSeconds": "máx {{n}}s"
+  },
+  "placeholder": {
+    "chooseImage": "elegir imagen…",
+    "uploadAudio": "subir archivo de audio",
+    "artistName": "Nombre del artista",
+    "trackName": "Nombre del tema",
+    "releaseCode": "DUBC000"
+  },
+  "export": {
+    "button": "exportar mp4",
+    "reset": "reiniciar",
+    "rendering": "renderizando…",
+    "encoding": "codificando…",
+    "success": "exportado con éxito",
+    "busy": "…"
+  },
+  "preview": {
+    "loading": "cargando recursos…"
+  }
+}

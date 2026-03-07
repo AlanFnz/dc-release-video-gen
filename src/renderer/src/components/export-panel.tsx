@@ -1,4 +1,5 @@
 import type { ExportState } from '../lib/useExport'
+import { useI18n } from '../i18n'
 
 interface ExportPanelProps {
   state: ExportState
@@ -8,6 +9,7 @@ interface ExportPanelProps {
 }
 
 export function ExportPanel({ state, canExport, onExport, onReset }: ExportPanelProps) {
+  const { t } = useI18n()
   const busy = state.status === 'recording' || state.status === 'encoding'
 
   return (
@@ -20,14 +22,14 @@ export function ExportPanel({ state, canExport, onExport, onReset }: ExportPanel
 
       {state.status === 'done' && (
         <p className="rounded bg-green-950 border border-green-800 px-3 py-2 text-xs text-green-300">
-          exported successfully
+          {t('export.success')}
         </p>
       )}
 
       {busy && (
         <div className="flex flex-col gap-1">
           <div className="flex justify-between text-xs text-neutral-500">
-            <span>{state.status === 'recording' ? 'rendering…' : 'encoding…'}</span>
+            <span>{state.status === 'recording' ? t('export.rendering') : t('export.encoding')}</span>
             <span>{Math.round(state.progress * 100)}%</span>
           </div>
           <div className="h-1 w-full rounded-full bg-neutral-800 overflow-hidden">
@@ -45,7 +47,7 @@ export function ExportPanel({ state, canExport, onExport, onReset }: ExportPanel
           disabled={!canExport || busy}
           className="flex-1 rounded bg-white text-black text-sm font-medium py-2 px-4 hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          {busy ? '…' : 'export mp4'}
+          {busy ? t('export.busy') : t('export.button')}
         </button>
 
         {(busy || state.status === 'done' || state.status === 'error') && (
@@ -53,7 +55,7 @@ export function ExportPanel({ state, canExport, onExport, onReset }: ExportPanel
             onClick={onReset}
             className="rounded border border-neutral-700 text-neutral-400 text-sm py-2 px-3 hover:border-neutral-500 transition-colors"
           >
-            reset
+            {t('export.reset')}
           </button>
         )}
       </div>
