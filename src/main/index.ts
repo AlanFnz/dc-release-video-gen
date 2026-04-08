@@ -2,6 +2,9 @@ import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { registerHandlers } from './handlers'
 
+// must be set before app is ready for macOS dock tooltip to pick it up
+app.setName('DC Release Video Maker')
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,
