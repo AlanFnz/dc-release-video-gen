@@ -1,7 +1,13 @@
 // generates the app icon using the renderer canvas (so Tactic Round font is available)
 // returns a PNG as ArrayBuffer to be sent to the main process
 export async function generateAppIcon(): Promise<ArrayBuffer> {
-  await document.fonts.ready
+  // poll until the font is registered and loaded, or we time out at 5s.
+  // document.fonts.ready resolves before CSS-registered fonts are necessarily
+  // available to canvas; check() is the reliable test.
+  const deadline = Date.now() + 5000
+  while (!document.fonts.check('600 430px "Tactic Round"') && Date.now() < deadline) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 100))
+  }
 
   const size = 1024
   const canvas = document.createElement('canvas')
